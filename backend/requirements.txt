@@ -1,0 +1,17 @@
+# 运行期依赖（MVP 基线，锁定主版本以便课程环境可复现）
+Flask>=3.0,<4.0
+Flask-SQLAlchemy>=3.1,<4.0
+SQLAlchemy>=2.0,<3.0
+Werkzeug>=3.0,<4.0
+waitress>=3.0,<4.0
+python-dotenv>=1.0,<2.0
+
+# 数据与校验
+numpy>=1.26
+pandas>=2.1
+
+# 说明：
+# 1. PyTorch 不在本文件内，请按 backend/requirements-ml.txt 单独安装
+#    （CPU 版与 CUDA 版安装源不同，且体积较大，避免阻塞前端/后端同学的环境搭建）。
+# 2. 生产环境仅需本文件 + 一个可用的模型权重文件；
+#    若尚未训练模型，系统会自动降级为“持续性预测基线”（见 docs/deployment.md 第 5 节）。

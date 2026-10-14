@@ -1,0 +1,51 @@
+/docs/source-docx/
+~$*.docx
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ---------- 运行期数据（不入库：可重新生成，且可能含用户上传内容） ----------
+backend/instance/
+*.sqlite
+*.sqlite3
+*.db
+
+# ---------- 数据与模型产物（大文件不入库，用 data/README.md 说明获取方式） ----------
+data/raw/*
+data/processed/*
+data/models/*
+data/review/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/models/.gitkeep
+!data/samples/
+*.pt
+*.pth
+
+# ---------- 上传文件（运行期） ----------
+backend/instance/uploads/
+
+# ---------- 前端 ----------
+node_modules/
+frontend/dist/
+frontend/.vite/
+backend/app/static/app/assets/
+backend/app/static/app/index.html
+
+# ---------- 编辑器与系统 ----------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp

@@ -1,0 +1,11 @@
+# 模型训练与推理依赖（组长/数据与模型负责人，及需要真实 Transformer 推理的环境）
+#
+# 安装方式（CPU 版，课程默认）：
+#   pip install -r backend/requirements.txt
+#   pip install -r backend/requirements-ml.txt
+#
+# 若服务器有 NVIDIA GPU，请先按官方指引安装对应 CUDA 版 torch，再执行上面的第二条命令：
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+-r requirements.txt
+
+torch>=2.2
