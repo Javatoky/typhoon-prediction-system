@@ -44,7 +44,7 @@
 | 0 侦察 | `docs/data-recon-report.md`、`data/processed/recon_summary.json` | 组长看过体检表，红旗清单逐条有判断 | ✅ 完成（7 条红旗已裁决） |
 | 1 冻结口径 | `docs/data-card.md` 第 1 节 | 每条口径有"选择 + 理由 + 影响" | ✅ 完成（D-01 ~ D-09） |
 | 2 管道实现 | `backend/training/prepare_data.py` | 能产出 `dataset.npz` 且字段口径与卡片一致 | ✅ 完成（发现并修正 3 个缺陷） |
-| 3 质量审计 | `docs/data-card.md` 数据集卡片节 | 样本量、分布、异常清单齐全；组长抽查 ≥5 个台风 | ⏳ 统计已就绪，**待组长抽查** |
+| 3 质量审计 | `docs/data-card.md` 数据集卡片节 | 样本量、分布、异常清单齐全；组长抽查 ≥5 个台风 | ⏳ 抽查工具 `spot_check.py` 已就绪，**待组长抽查**；另有 2 项待裁决（data-card 第 7 节） |
 | 4 样本与划分 | `dataset.npz`、`scaler.json`、`dataset_meta.json` | 按 SID 划分无泄漏，scaler 仅由训练集拟合 | ✅ 完成（`verify_dataset.py` 全项通过） |
 
 ---
@@ -102,7 +102,8 @@ AI 交付任何结论时，必须同时给出：
 | --- | --- | --- |
 | `backend/scripts/fetch_ibtracs.py` | 下载 IBTrACS 子集（支持断点续传） | 是（自动续传/跳过已完成） |
 | `backend/scripts/data_recon.py` | 数据侦察，生成体检表与红旗清单 | 是（幂等，输出可覆盖） |
-| `backend/scripts/verify_dataset.py` | 数据集完整性核验（形状/量纲/无泄漏/口径一致） | 是（只读，退出码表示通过与否） |
+| `backend/scripts/verify_dataset.py` | 数据集完整性核验（形状/量纲/无泄漏/口径一致/跨 180° 跳变，全量样本） | 是（只读，退出码表示通过与否） |
+| `backend/scripts/spot_check.py` | 阶段 3 抽查包：原始记录 vs 处理结果逐行对照 + 自检 | 是（只读原始数据，输出到 `data/review/spot_check/`） |
 | `backend/training/prepare_data.py` | 构造训练样本 | 是 |
 | `backend/training/train.py` | 训练 | 是 |
 | `backend/training/evaluate.py` | 评估（含持续性基线对比） | 是 |
@@ -118,7 +119,13 @@ AI 交付任何结论时，必须同时给出：
 - [x] 管线实现并按冻结口径校准，产出 `dataset.npz`
 - [x] 数据集完整性核验全项通过（6,584 样本 / 754 台风 / 划分无泄漏）
 - [x] 修正 3 个实现缺陷（列名隐式映射、风速单位判定、估算方法高估）
-- [ ] **组长抽查 ≥5 个台风的原始数据与处理结果**（阶段 3 完成标志，待人工执行）
+- [x] 数据管线回归测试：`tests/test_prepare_data.py`、`tests/test_spot_check.py`（合成 IBTrACS 数据，
+      已验证把缺陷 1/2 与"按行过滤盆地"重新注入代码时测试会失败）
+- [x] 抽查工具 `spot_check.py` 就绪（逐行去向 + 与管线输出自动比对）
+- [ ] **重跑 `prepare_data.py` + `verify_dataset.py`**（核验已加严，跨 180° 检查预计会失败，属预期）
+- [ ] **组长抽查 ≥5 个台风的原始数据与处理结果**（阶段 3 完成标志，待人工执行）：
+      `python scripts/spot_check.py --include-flagged`，按 `data/review/spot_check/README.md` 填写
+- [ ] **裁决 Q-01（跨 180° 经度）与核实 Q-02（气压填补比例）**，见 `docs/data-card.md` 第 7 节
 - [ ] 训练首个 Transformer 并与持续性基线对比（NFR-005）
 
 **已裁决的口径**：风速列 `USA_WIND`、气压列 `USA_PRES`+回退填补、

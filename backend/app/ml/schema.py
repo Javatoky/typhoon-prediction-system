@@ -82,7 +82,7 @@ KNOT_MAX_PLAUSIBLE = 260.0
 # D-01 风速列：USA_WIND 覆盖率最高（54.42%），单位 knot
 PRIMARY_WIND_COLUMN = "USA_WIND"
 WIND_COLUMN_UNIT = "kt"
-# D-02 气压列：USA_PRES 为主，缺失时按顺序回退填补（样本量 5,873 -> 20,063）
+# D-02 气压列：USA_PRES 为主，缺失时按顺序回退填补（样本量 6,253 -> 6,584，见数据卡片第 5 节缺陷 3）
 PRIMARY_PRESSURE_COLUMN = "USA_PRES"
 FALLBACK_PRESSURE_COLUMNS: tuple[str, ...] = ("WMO_PRES", "CMA_PRES", "HKO_PRES")
 # D-03 取样口径：只保留 synoptic 时刻，禁止插值降频

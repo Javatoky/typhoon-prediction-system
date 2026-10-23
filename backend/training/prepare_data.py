@@ -426,6 +426,16 @@ def split_by_sid(sids: np.ndarray, config: TrainConfig) -> dict[str, np.ndarray]
     }
 
 
+def dateline_crossing_mask(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """标出完整窗口（X+Y）内相邻点经度跳变超过 180° 的样本（未标准化的原始值）。
+
+    D-07 把经度统一为 -180~180 后，跨 180° 的台风在窗口内会出现 +179 → -179 的跳变。
+    这里只统计、不修改：如何处理属于口径决策，由组长裁决。
+    """
+    lon = np.concatenate([x[:, :, 1], y[:, :, 1]], axis=1)
+    return (np.abs(np.diff(lon, axis=1)) > 180.0).any(axis=1)
+
+
 # ---------------------------------------------------------------------------
 # 主流程
 # ---------------------------------------------------------------------------
@@ -443,6 +453,12 @@ def prepare(config: TrainConfig) -> SplitBundle:
     scaler = FeatureScaler.from_numpy(x[masks["train"]].reshape(-1, schema.FEATURE_DIM))
     x_scaled = np.stack([scaler.transform_window(item) for item in x])
     y_scaled = np.stack([scaler.transform_window(item) for item in y])
+
+    # 气压来源按**最终可用点位**统计（clean_frame 日志里的填补数发生在四特征齐全过滤之前，偏大）
+    pressure_sources = {
+        str(key): int(value) for key, value in frame["pressure_source"].value_counts().items()
+    }
+    crossing = dateline_crossing_mask(x, y)
 
     stats = {
         "raw_rows": raw_row_count,
@@ -472,6 +488,18 @@ def prepare(config: TrainConfig) -> SplitBundle:
             "train": int(masks["train"].sum()),
             "val": int(masks["val"].sum()),
             "test": int(masks["test"].sum()),
+        },
+        # 数据卡片 2.4 需要披露的事实（只统计，不改口径）
+        "pressure_source_counts": pressure_sources,
+        "pressure_fallback_pct": round(
+            (len(frame) - pressure_sources.get("primary", 0)) / max(len(frame), 1) * 100, 2
+        ),
+        "dateline_crossing": {
+            "sample_count": int(crossing.sum()),
+            "by_split": {
+                split: int((crossing & masks[split]).sum()) for split in ("train", "val", "test")
+            },
+            "sids": sorted(set(sids[crossing].tolist())),
         },
     }
     return SplitBundle(
@@ -573,6 +601,11 @@ def main() -> int:
           f" + 回退 {'/'.join(bundle.stats['caliber']['pressure_fallbacks'])}")
     print(f"  年份下限 / synoptic: {bundle.stats['caliber']['min_year']} / "
           f"{bundle.stats['caliber']['synoptic_hours']}")
+    print(f"  气压来源（最终点位）: {bundle.stats['pressure_source_counts']}"
+          f"（非主列占 {bundle.stats['pressure_fallback_pct']}%）")
+    dateline = bundle.stats["dateline_crossing"]
+    print(f"  跨 180° 经度跳变样本: {dateline['sample_count']} 个 {dateline['by_split']}"
+          f"，涉及台风 {len(dateline['sids'])} 个")
     print(f"样本文件：{npz_path}")
     print(f"标准化器：{Path(config.processed_dir) / 'scaler.json'}")
     print(f"数据集元数据：{Path(config.processed_dir) / 'dataset_meta.json'}")

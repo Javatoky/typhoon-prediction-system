@@ -47,6 +47,13 @@ python training/prepare_data.py --input ../data/raw/ibtracs.WP.list.v04r01.csv
 
 特性顺序固定为 `lat, lon, max_wind_mps, central_pressure_hpa`，不得调整。
 
+生成后先核验，再做阶段 3 抽查（见 `docs/data-workflow.md`）：
+
+```bash
+python scripts/verify_dataset.py                    # 全量完整性核验，退出码 0 表示通过
+python scripts/spot_check.py --include-flagged      # 抽查包 → data/review/spot_check/README.md
+```
+
 ## 3 训练与评估（models/）
 
 ```bash

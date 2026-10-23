@@ -7,10 +7,16 @@
 4. 标准化是否真的用训练集统计量（验证集均值应接近 0，但不是精确 0）
 5. 反标准化后样本是否落在物理量程内
 6. 目标为"未来 12 点"的时序正确性：Y 的第一点应晚于 X 的最后一点
+7. 窗口内相邻点经度无跨 180° 跳变（D-07 统一为 -180~180 后，跨线台风会出现 ~358° 跳变）
+
+用法（在 backend 目录）：
+    python scripts/verify_dataset.py                       # 默认 data/processed
+    python scripts/verify_dataset.py --processed-dir <目录>
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -23,7 +29,9 @@ sys.path.insert(0, str(BACKEND))
 from app.ml import schema  # noqa: E402
 from app.ml.preprocess import FeatureScaler  # noqa: E402
 
-PROCESSED = BACKEND.parent / "data" / "processed"
+_parser = argparse.ArgumentParser(description="数据集完整性核验（只读，退出码 0 表示全部通过）")
+_parser.add_argument("--processed-dir", default=str(BACKEND.parent / "data" / "processed"))
+PROCESSED = Path(_parser.parse_args().processed_dir)
 
 failures: list[str] = []
 
@@ -105,9 +113,14 @@ check(
 )
 
 print()
-print("=== 5 反标准化后落在物理量程内 ===")
-raw_x = np.stack([scaler.inverse_transform(item) for item in data["x_train"][:200]])
-raw_y = np.stack([scaler.inverse_transform(item) for item in data["y_train"][:200]])
+print("=== 5 反标准化后落在物理量程内（全部样本，三个集合）===")
+# 曾经只抽查训练集前 200 个样本；跨 180° 等少数样本很容易漏检，因此改为全量
+raw_x = np.concatenate(
+    [np.stack([scaler.inverse_transform(item) for item in data[f"x_{split}"]]) for split in ("train", "val", "test")]
+)
+raw_y = np.concatenate(
+    [np.stack([scaler.inverse_transform(item) for item in data[f"y_{split}"]]) for split in ("train", "val", "test")]
+)
 flat = np.concatenate([raw_x.reshape(-1, 4), raw_y.reshape(-1, 4)])
 check(
     "纬度在 [-90, 90]",
@@ -141,6 +154,16 @@ check("输入末点→目标首点纬度跳变 < 10°", bool((jump_lat < 10).all
 check("输入末点→目标首点经度跳变 < 12°", bool((jump_lon < 12).all()), f"最大 {jump_lon.max():.2f}°")
 within = np.abs(np.diff(raw_y[:, :, 0], axis=1))
 check("目标序列内部纬度逐步变化 < 8°", bool((within < 8).all()), f"最大 {within.max():.2f}°")
+# 把 X 与 Y 拼成完整 17 点窗口，检查任意相邻两点的经度跳变
+full_lon = np.concatenate([raw_x[:, :, 1], raw_y[:, :, 1]], axis=1)
+step_lon = np.abs(np.diff(full_lon, axis=1))
+crossing = (step_lon > 180).any(axis=1)
+check(
+    "窗口内相邻点经度跳变 < 12°（无跨 180° 跳变）",
+    bool((step_lon < 12).all()),
+    f"最大 {step_lon.max():.2f}°；跨 180° 样本 {int(crossing.sum())} 个"
+    f"（占 {crossing.mean() * 100:.2f}%），口径处理待组长裁决，见 docs/data-card.md 第 7 节 Q-01",
+)
 
 print()
 print("=== 7 数据集元数据与冻结口径一致 ===")
