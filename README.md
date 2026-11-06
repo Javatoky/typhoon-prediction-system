@@ -52,6 +52,7 @@ pnpm build           # 之后直接访问 http://127.0.0.1:5000/
 | [docs/deployment.md](docs/deployment.md) | 环境搭建、数据库初始化、模型上线、Linux + Waitress + SSH 部署、验收清单、常见问题 |
 | [docs/project-structure.md](docs/project-structure.md) | 目录结构、与 9.1 分层架构的对应、需求→代码追踪表 |
 | [docs/api-reference.md](docs/api-reference.md) | 全部对外接口的请求/响应约定、错误码、curl 示例 |
+| [docs/model-interface.md](docs/model-interface.md) | 后端 ↔ 数据/模型侧接口约定（推理调用、模型交付物、扩展点、变更规则） |
 | [docs/development.md](docs/development.md) | 分支与提交规范、分层规则、数据库变更约定、分工与推进顺序 |
 
 ## 技术栈（依据需求文档 2.3）
